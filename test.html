@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>虚拟dom</title>
+	</head>
+	<body>
+		<div id="root">
+			hello world
+		</div>
+	</body>
+</html>
+<script type="text/javascript" src="schedule.js"></script>
+
+<script type="text/javascript">
+
+var fiber = 1000;//初始值
+
+
+//0.给工作队列添加
+scheduleWork(reconcileWork.bind(null, fiber), fiber.time)
+
+
+function  reconcileWork(WIP){
+
+  //1.注意这里切片时间到了也会跳出，这个时间会给主线程流出喘息的机会
+  while (WIP && (!shouldYield())) WIP = reconcile(WIP)
+  //2.返回自身，相当于往schduleWork里又推入一个job，重复未完成的fiber tree
+  if (WIP) return reconcileWork.bind(null, WIP)
+
+  //3.如果fiber tree 从下到上，从上到下遍历完了，形成完整链条之后我们去渲染
+  if(WIP==0){ //   if (preCommit) commitWork(preCommit)
+	commitWork(WIP)
+  } 
+
+  //4.如果fiber tree遍历完了，就不需要再返回回调了
+  return null
+
+
+  //PS:
+  //schedulework并不具备requestIdleCallback的自动计算浏览器主线程的限制时间的能力
+  //所以我们采取的是上边返回自身的方法，在时间切片的间隙给主线程
+  //相当于自己手撸出来一个类似idle的功能
+  //scheduleWork(reconcileWork.bind(null, fiber), fiber.time)
+
+
+}
+
+
+//作生成fiber tree的操作，这里写一个自减简化
+function reconcile(WIP){
+	WIP -- ;
+	console.log(WIP);
+	return WIP;
+}
+//commit渲染操作，这里同样简化
+function commitWork(WIP){
+	console.log('----render',WIP);
+}
+
+
+
+
+
+</script>
